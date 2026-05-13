@@ -13,6 +13,7 @@ import me.combimagnetron.sunscreen.neo.editor.project.EditorProject;
 import me.combimagnetron.sunscreen.neo.editor.project.EditorProjectStore;
 import me.combimagnetron.sunscreen.neo.element.Elements;
 import me.combimagnetron.sunscreen.neo.element.ModernElement;
+import me.combimagnetron.sunscreen.neo.element.impl.ButtonElement;
 import me.combimagnetron.sunscreen.neo.element.impl.DropdownElement;
 import me.combimagnetron.sunscreen.neo.element.impl.SelectorElement;
 import me.combimagnetron.sunscreen.neo.graphic.Canvas;
@@ -77,6 +78,7 @@ public class EditorStartOverviewMenuTemplate implements MenuTemplate {
                 if (!event.element().identifier().key().string().equals("project/new/open")) return;
                 ActiveMenu menu = event.menu();
                 menu.element(Identifier.of("new_project/wizard")).visibility(Visibility.visible());
+                projectButtons(menu, false);
             }).back()
         );
     }
@@ -175,11 +177,25 @@ public class EditorStartOverviewMenuTemplate implements MenuTemplate {
                     if (!event.element().identifier().key().string().equals("new_project/wizard/cancel_button")) return;
                     Layout<?> layout = (Layout<?>) event.menu().element(Identifier.of("new_project/wizard"));
                     layout.visibility(Visibility.hidden());
+                    projectButtons(event.menu(), true);
                 }).back().size(Size.fixed(Vec2i.of(96, 14))).position(Position.fixed(Vec2i.of(2, 254))),
                 new DropdownElement(Identifier.of("new_project/wizard/theme_dropdown"), 11).entry(vanilla("Tropical")).entry(vanilla("Modern")).size(Size.fixed(Vec2i.of(193, 50))).position(Position.fixed(Vec2i.of(2, 61))).decorator(Decorator.decorator(Target.typed(SelectorElement.class))),
                 Elements.label(Identifier.of("new_project/wizard/theme_label"), vanilla("Theme").color(TextColor.color(Color.of(180, 180, 180)))).size(Size.fixed(Vec2i.of(143, 20))).position(Position.fixed(Vec2i.of(2, 53)))
             ).size(Size.fixed(Vec2i.of(400, 400))).position(Position.fixed(Vec2i.of(301, 105))).visibility(Visibility.hidden())
         );
+    }
+
+    private static void projectButtons(@NotNull ActiveMenu menu, boolean enabled) {
+        projectButton(menu, Identifier.of("project/new/open"), enabled);
+        for (int i = 0; i < 14; i++) {
+            projectButton(menu, Identifier.of("project/saved/open/" + i), enabled);
+        }
+    }
+
+    private static void projectButton(@NotNull ActiveMenu menu, @NotNull Identifier identifier, boolean enabled) {
+        if (menu.element(identifier) instanceof ButtonElement button) {
+            button.disabled(!enabled);
+        }
     }
 
     private static @NotNull String trim(@NotNull String value, int length) {
