@@ -206,6 +206,8 @@ public interface RenderPhase<N extends RenderPhase<? extends RenderPhase<?>>> {
 
                 float horizontalFactor = scale.floatValue() * 2.0f;
                 float verticalFactor = scale.floatValue() * 2.0f * ((float) viewport.y() /viewport.x());
+                List<ProcessedRenderChunk> chunks = new ArrayList<>();
+                boolean changed = false;
 
                 for (int x = 0; x < chunksX; x++) {
                     for (int y = 0; y < chunksY; y++) {
@@ -228,13 +230,14 @@ public interface RenderPhase<N extends RenderPhase<? extends RenderPhase<?>>> {
                         ProcessedRenderChunk newChunk = new ProcessedRenderChunk(sub, gridPos, scale);
                         Integer id = cache.byPosAndScale(scale, gridPos);
                         boolean exists = id != null;
+                        chunks.add(newChunk);
 
                         if (!exists || renderContext.chunkChangedAt(newChunk, id)) {
-                            changedChunks.add(newChunk);
-
+                            changed = true;
                         }
                     }
                 }
+                if (changed) changedChunks.addAll(chunks);
             }
 
             Collection<EncodedRenderChunk> encodedChunks = encodeChunks(changedChunks, renderContext.renderCache());

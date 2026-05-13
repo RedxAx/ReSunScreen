@@ -38,4 +38,12 @@ public interface EditorElements {
         return new ElementLibraryElement(identifier, controller);
     }
 
+    static @NotNull PixelArtPanelElement pixelArtPanel(@NotNull Identifier identifier, @NotNull EditorController controller) {
+        return new PixelArtPanelElement(identifier, controller);
+    }
+
+    static @NotNull ElementPanelElement elementPanel(@NotNull Identifier identifier, @NotNull EditorController controller) {
+        return new ElementPanelElement(identifier, controller);
+    }
+
 }

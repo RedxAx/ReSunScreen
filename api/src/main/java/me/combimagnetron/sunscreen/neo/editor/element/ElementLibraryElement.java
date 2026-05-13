@@ -4,18 +4,14 @@ import me.combimagnetron.passport.util.data.Identifier;
 import me.combimagnetron.passport.util.math.Vec2i;
 import me.combimagnetron.sunscreen.neo.cursor.CursorStyle;
 import me.combimagnetron.sunscreen.neo.editor.EditorController;
-import me.combimagnetron.sunscreen.neo.editor.virtual.VirtualElement;
-import me.combimagnetron.sunscreen.neo.editor.virtual.VirtualPage;
+import me.combimagnetron.sunscreen.neo.editor.tool.Tools;
 import me.combimagnetron.sunscreen.neo.editor.virtual.argument.ElementConstructionProvider;
 import me.combimagnetron.sunscreen.neo.element.GenericInteractableModernElement;
 import me.combimagnetron.sunscreen.neo.element.ModernElement;
-import me.combimagnetron.sunscreen.neo.element.impl.ButtonElement;
-import me.combimagnetron.sunscreen.neo.element.impl.DropdownElement;
 import me.combimagnetron.sunscreen.neo.event.UserMoveStateChangeEvent;
 import me.combimagnetron.sunscreen.neo.graphic.Canvas;
 import me.combimagnetron.sunscreen.neo.graphic.color.Color;
 import me.combimagnetron.sunscreen.neo.graphic.text.Text;
-import me.combimagnetron.sunscreen.neo.graphic.text.style.impl.color.TextColor;
 import me.combimagnetron.sunscreen.neo.input.InputHandler;
 import me.combimagnetron.sunscreen.neo.input.ListenerReferences;
 import me.combimagnetron.sunscreen.neo.input.context.MouseInputContext;
@@ -23,11 +19,10 @@ import me.combimagnetron.sunscreen.neo.property.Size;
 import me.combimagnetron.sunscreen.neo.render.engine.context.RenderContext;
 import me.combimagnetron.sunscreen.util.helper.HoverHelper;
 import me.combimagnetron.sunscreen.util.helper.PropertyHelper;
-import net.kyori.adventure.text.Component;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import java.util.concurrent.ThreadLocalRandom;
+import java.util.Random;
 
 public class ElementLibraryElement extends GenericInteractableModernElement<ElementLibraryElement, Canvas, ElementLibraryElement.LayerOverviewElementListenerReferences> {
     private final LayerOverviewElementListenerReferences references = new LayerOverviewElementListenerReferences(this);
@@ -35,7 +30,8 @@ public class ElementLibraryElement extends GenericInteractableModernElement<Elem
     private boolean unfolded = false;
     private CursorStyle cursorStyle = CursorStyle.pointer();
     private int selected = 0;
-    private int click = 0;
+    private boolean leftWasPressed = false;
+    private final Random random = new Random();
 
     protected ElementLibraryElement(@NotNull Identifier identifier, @NotNull EditorController controller) {
         super(identifier);
@@ -51,12 +47,13 @@ public class ElementLibraryElement extends GenericInteractableModernElement<Elem
     }
 
     private void handleCursor(@NotNull UserMoveStateChangeEvent event) {
-        if (event.user() != inputHandler().user()) return;
+        InputHandler inputHandler = inputHandler();
+        if (inputHandler == null || event.user() != inputHandler.user()) return;
         MouseInputContext context = event.context();
         Vec2i cursor = context.position();
         boolean in = HoverHelper.in(this, cursor);
         if (!in && cursorStyle == CursorStyle.click()) {
-            inputHandler().cursor(CursorStyle.pointer());
+            inputHandler.cursor(CursorStyle.pointer());
             cursorStyle = CursorStyle.pointer();
         }
         if (!in) {
@@ -67,21 +64,18 @@ public class ElementLibraryElement extends GenericInteractableModernElement<Elem
         selected = (cursor.y() - posVec.y() - 4) / 52;
         if (selected > ElementConstructionProvider.PROVIDERS.length - 1) {
             selected = -1;
-            inputHandler().cursor(CursorStyle.pointer());
+            inputHandler.cursor(CursorStyle.pointer());
             cursorStyle = CursorStyle.pointer();
             return;
         }
-        inputHandler().cursor(CursorStyle.click());
+        if (selected < 0) return;
+        inputHandler.cursor(CursorStyle.click());
         cursorStyle = CursorStyle.click();
-        if (context.leftPressed()) click = 3;
-        if (click == 1) {
-            if (controller.selected() != null) {
-                controller.elementSetup(ElementConstructionProvider.PROVIDERS[selected]);
-            } else {
-                controller.menu().notice(Identifier.of("aaaaaaa"), Text.vanilla("No page selected!"), cursor.sub(0, 15));
-            }
+        if (context.leftPressed() && !leftWasPressed) {
+            controller.pendingProvider(ElementConstructionProvider.PROVIDERS[selected]);
+            controller.tool(Tools.placeElement());
         }
-        if (click > 0) click -= 1;
+        leftWasPressed = context.leftPressed();
     }
 
     @Override
@@ -113,7 +107,7 @@ public class ElementLibraryElement extends GenericInteractableModernElement<Elem
         Canvas canvas = Canvas.empty(realSize);
         canvas.fill(Vec2i.zero(), realSize, Color.of(27, 27, 27));
         canvas.fill(Vec2i.of(1, 9), realSize.sub(2, 10), Color.of(13, 13, 13));
-        ModernElement<?, Canvas> modernElement = preview.base(Identifier.of("preview_" + ThreadLocalRandom.current().nextInt()));
+        ModernElement<?, Canvas> modernElement = preview.base(Identifier.of("preview_" + random.nextInt()));
         Vec2i placement = PropertyHelper.vectorOrThrow(modernElement.position(), Vec2i.class);
         Canvas place = modernElement.render(null, controller.context());
         canvas.place(place, placement);

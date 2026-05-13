@@ -82,7 +82,7 @@ public class ActiveMenu implements IdentifierHolder {
                 layout.inputHandler(inputHandler);
             }
         }
-        renderPipeline = RenderThreadPoolHandler.start(user, menuRoot, loadedComponents.values());
+        renderPipeline = RenderThreadPoolHandler.start(user, menuRoot, new ArrayList<>(loadedComponents.values()));
     }
 
     private void loadComponents() {

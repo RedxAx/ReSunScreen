@@ -32,6 +32,7 @@ import java.util.function.Consumer;
 public class ButtonElement extends GenericInteractableModernElement<ButtonElement, Canvas, ButtonElement.ButtonElementListenerReferences> {
     private final ButtonElementListenerReferences references = new ButtonElementListenerReferences(this);
     private Text text;
+    private Color textColor = Color.of(255, 255, 255);
     private ElementPhase phase = ElementPhase.DEFAULT;
     private int click = 0;
     private Vec2i textPosition = Vec2i.zero();
@@ -64,9 +65,26 @@ public class ButtonElement extends GenericInteractableModernElement<ButtonElemen
         return this;
     }
 
+    public @Nullable Text text() {
+        return text;
+    }
+
+    public @NotNull ButtonElement textColor(@NotNull Color color) {
+        textColor = color;
+        return this;
+    }
+
+    public @NotNull Color textColor() {
+        return textColor;
+    }
+
     public @NotNull ButtonElement textPosition(@Nullable Vec2i position) {
         this.textPosition = position;
         return this;
+    }
+
+    public @NotNull Vec2i textPosition() {
+        return textPosition;
     }
 
     public @NotNull ButtonElement canvas(@Nullable Canvas canvas) {
@@ -140,12 +158,10 @@ public class ButtonElement extends GenericInteractableModernElement<ButtonElemen
         }
         if (text != null) {
             Text buttonText = text;
-            if (phase == ElementPhase.DISABLED) buttonText.color(TextColor.color(Color.of(93, 93, 93)));
-            else buttonText.color(TextColor.color(Color.of(255, 255, 255)));
+            if (phase == ElementPhase.DISABLED) buttonText = buttonText.color(TextColor.color(Color.of(93, 93, 93)));
+            else buttonText = buttonText.color(TextColor.color(textColor));
             button.place(buttonText.render(size, context), textPosition);
         }
-        // button.modifier(GraphicModifiers.mask(Shape.rectangle(Vec2i.of(20, 20)),
-        // ModifierContext.of()));
         return button;
     }
 

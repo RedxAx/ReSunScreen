@@ -33,7 +33,7 @@ public class DropdownElement extends GenericInteractableModernElement<DropdownEl
     private CursorStyle style = CursorStyle.pointer();
     private int selected = 0;
     private int hovered = -1;
-    private int click = 0;
+    private boolean pressed = false;
     private boolean open = false;
 
     public DropdownElement(@NotNull Identifier identifier, @NotNull List<Text> entries, int height) {
@@ -52,8 +52,29 @@ public class DropdownElement extends GenericInteractableModernElement<DropdownEl
         return this;
     }
 
+    public @NotNull DropdownElement entry(int index, @NotNull Text text) {
+        entries.set(index, text);
+        return this;
+    }
+
+    public @NotNull DropdownElement removeEntry(int index) {
+        if (entries.size() <= 1) return this;
+        entries.remove(index);
+        selected = Math.clamp(selected, 0, entries.size() - 1);
+        hovered = -1;
+        return this;
+    }
+
+    public @NotNull List<Text> entries() {
+        return Collections.unmodifiableList(entries);
+    }
+
+    public int height() {
+        return height;
+    }
+
     public @NotNull DropdownElement select(int entry) {
-        this.selected = entry;
+        this.selected = Math.clamp(entry, 0, Math.max(0, entries.size() - 1));
         return this;
     }
 
@@ -89,6 +110,9 @@ public class DropdownElement extends GenericInteractableModernElement<DropdownEl
             return;
         MouseInputContext context = event.context();
         Vec2i cursor = context.position();
+        boolean leftPressed = context.leftPressed();
+        if (!leftPressed)
+            pressed = false;
         Visibility visibility = visibility();
         if (visibility.hide())
             return;
@@ -98,8 +122,10 @@ public class DropdownElement extends GenericInteractableModernElement<DropdownEl
             style = CursorStyle.pointer();
         }
         if (!inBounds(cursor)) {
-            if (open && context.leftPressed())
+            if (open && leftPressed && !pressed) {
+                pressed = true;
                 open = false;
+            }
             hovered = -1;
             return;
         }
@@ -107,13 +133,11 @@ public class DropdownElement extends GenericInteractableModernElement<DropdownEl
         handler.cursor(CursorStyle.click());
         Vec2i relative = cursor.sub(PropertyHelper.vectorOrThrow(position(), Vec2i.class));
         if (relative.y() < height) {
-            hovered = -1;
-            if (context.leftPressed())
-                click = 3;
-            if (click == 1)
+            hovered = -2;
+            if (leftPressed && !pressed) {
+                pressed = true;
                 open = !open;
-            if (click > 0)
-                click--;
+            }
             return;
         }
         if (!open)
@@ -122,15 +146,12 @@ public class DropdownElement extends GenericInteractableModernElement<DropdownEl
         hovered = index;
         if (index == -1)
             return;
-        if (context.leftPressed())
-            click = 3;
-        if (click == 1 && index != selected) {
+        if (leftPressed && !pressed) {
+            pressed = true;
             selected = index;
             open = false;
             Dispatcher.dispatcher().post(new UserClickElementEvent<>(handler.user(), this, relative));
         }
-        if (click > 0)
-            click--;
     }
 
     private int indexAt(@NotNull Vec2i relative) {
@@ -157,12 +178,15 @@ public class DropdownElement extends GenericInteractableModernElement<DropdownEl
         if (!(themeDecorator instanceof ThemeDecorator.StateNineSliceThemeDecorator decorator))
             return Canvas.error(size);
         Vec2i sizeVec = PropertyHelper.vectorOrThrow(size, Vec2i.class);
+        if (entries.isEmpty()) return Canvas.empty(Vec2i.of(sizeVec.x(), height));
+        selected = Math.clamp(selected, 0, entries.size() - 1);
         Text selectedText = entries.get(selected);
         int totalHeight = open ? height + entries.size() * height : height;
         Canvas canvas = Canvas.empty(Vec2i.of(sizeVec.x(), totalHeight));
-        Canvas header = decorator.render(Size.fixed(Vec2i.of(sizeVec.x(), height)), context, ElementPhase.DEFAULT);
+        ElementPhase headerPhase = hovered == -2 ? ElementPhase.HOVER : ElementPhase.DEFAULT;
+        Canvas header = decorator.render(Size.fixed(Vec2i.of(sizeVec.x(), height)), context, headerPhase);
         Canvas renderedSelected = selectedText.render(Size.fixed(Vec2i.of(sizeVec.x(), height)), null).trim();
-        Canvas textLayer = decorator.render(Size.fixed(Vec2i.of(sizeVec.x(), height)), context, ElementPhase.DEFAULT);
+        Canvas textLayer = decorator.render(Size.fixed(Vec2i.of(sizeVec.x(), height)), context, headerPhase);
         textLayer.place(renderedSelected, Vec2i.of(2, 2));
         canvas.place(header, Vec2i.zero());
         canvas.place(textLayer, Vec2i.zero());
@@ -181,10 +205,10 @@ public class DropdownElement extends GenericInteractableModernElement<DropdownEl
     }
 
     private @NotNull ElementPhase phase(int index) {
-        if (index == selected)
-            return ElementPhase.CLICK;
         if (index == hovered)
             return ElementPhase.HOVER;
+        if (index == selected)
+            return ElementPhase.CLICK;
         return ElementPhase.DEFAULT;
     }
 

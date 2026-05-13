@@ -1,6 +1,5 @@
 package me.combimagnetron.sunscreen.neo.editor.element;
 
-import me.combimagnetron.passport.event.Event;
 import me.combimagnetron.passport.util.data.Identifier;
 import me.combimagnetron.passport.util.math.Vec2i;
 import me.combimagnetron.sunscreen.neo.cursor.CursorStyle;
@@ -38,6 +37,8 @@ public class ValueSelectorElement extends GenericInteractableModernElement<Value
     private Vec2i startPos = null;
     private Section previous = null;
     private Section hovered = null;
+    private Section active = null;
+    private boolean dragging = false;
     private int[] values = new int[4];
 
     protected ValueSelectorElement(@Nullable Identifier identifier) {
@@ -63,6 +64,7 @@ public class ValueSelectorElement extends GenericInteractableModernElement<Value
             return;
         }
         int[] newValues = ArrayUtils.toPrimitive((Integer[]) context1.values());
+        if (newValues.length != values.length) return;
         if (Arrays.equals(newValues, values)) return;
         values = newValues;
     }
@@ -74,34 +76,55 @@ public class ValueSelectorElement extends GenericInteractableModernElement<Value
         if (visibility.hide()) return;
         Vec2i cursor = context.position();
         boolean hover = HoverHelper.in(this, cursor);
+        Section section = null;
+        if (hover) {
+            Vec2i position = PropertyHelper.vectorOrThrow(position(), Vec2i.class);
+            Vec2i relativePos = cursor.sub(position);
+            section = Section.at(relativePos);
+        }
         if (hovered == null && style != CursorStyle.pointer()) {
             inputHandler().cursor(CursorStyle.pointer());
             style = CursorStyle.pointer();
         }
-        if (!hover) {
+        if (!hover && !dragging) {
             hovered = null;
             startPos = null;
+            dragging = false;
+            active = null;
             return;
         }
-        Vec2i position = PropertyHelper.vectorOrThrow(position(), Vec2i.class);
-        Vec2i relativePos = cursor.sub(position);
         previous = hovered;
-        hovered = Section.at(relativePos);
-        if (hovered != previous) {
+        hovered = dragging ? active : section;
+        if (hovered != previous && !dragging) {
             startPos = null;
+            dragging = false;
         }
         if (startPos == null) {
             startPos = cursor;
             return;
         }
-        if (!context.leftPressed()) return;
+        if (!context.leftPressed()) {
+            dragging = false;
+            active = null;
+            startPos = cursor;
+            return;
+        }
+        if (!dragging) {
+            if (hovered == null) return;
+            dragging = true;
+            active = hovered;
+            startPos = cursor;
+            return;
+        }
+        if (active == null) return;
+        hovered = active;
         inputHandler().cursor(CursorStyle.resizeHorizontal());
         style = CursorStyle.resizeHorizontal();
-        int ordinal = hovered.ordinal();
+        int ordinal = active.ordinal();
         int delta = startPos.x() - cursor.x();
         values[ordinal] -= delta;
         startPos = cursor;
-        inputHandler().peek(SelectorInputContext.class, old -> old.inner(identifier(), new SelectorInputContext.ValueInnerContext(ArrayUtils.toObject(values))), event.user());
+        inputHandler().peek(SelectorInputContext.class, old -> old.inner(identifier(), new SelectorInputContext.ValueInnerContext(ArrayUtils.toObject(values), ordinal)), event.user());
     }
 
     @Override
@@ -112,7 +135,7 @@ public class ValueSelectorElement extends GenericInteractableModernElement<Value
     @Override
     public @NonNull Canvas render(@NonNull Size property, @Nullable RenderContext context) {
         if (context == null) return Canvas.error(Size.fixed(SIZE));
-        final Color top = Color.of(133, 133, 133);//context.theme().colorScheme()
+        final Color top = Color.of(133, 133, 133);
         final Color mid = Color.of(61, 61, 61);
         final Color low = Color.of(39, 39, 39);
         final Color other = Color.of(27, 27, 27);

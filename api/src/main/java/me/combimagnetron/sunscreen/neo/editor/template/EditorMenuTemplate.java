@@ -6,15 +6,15 @@ import me.combimagnetron.sunscreen.neo.ActiveMenu;
 import me.combimagnetron.sunscreen.neo.MenuTemplate;
 import me.combimagnetron.sunscreen.neo.MenuRoot;
 import me.combimagnetron.sunscreen.neo.editor.EditorController;
-import me.combimagnetron.sunscreen.neo.editor.element.*;
-import me.combimagnetron.sunscreen.neo.editor.virtual.VirtualElement;
+import me.combimagnetron.sunscreen.neo.editor.element.EditorElements;
+import me.combimagnetron.sunscreen.neo.editor.element.EditorNameElement;
+import me.combimagnetron.sunscreen.neo.editor.element.PageNameElement;
+import me.combimagnetron.sunscreen.neo.editor.project.EditorProjectStore;
+import me.combimagnetron.sunscreen.neo.editor.tool.Tools;
 import me.combimagnetron.sunscreen.neo.editor.virtual.VirtualPage;
-import me.combimagnetron.sunscreen.neo.editor.virtual.argument.Argument;
-import me.combimagnetron.sunscreen.neo.editor.virtual.argument.ElementConstructionProvider;
 import me.combimagnetron.sunscreen.neo.editor.widget.EditorWidget;
 import me.combimagnetron.sunscreen.neo.editor.widget.EditorWidgetTab;
 import me.combimagnetron.sunscreen.neo.element.Elements;
-import me.combimagnetron.sunscreen.neo.element.ModernElement;
 import me.combimagnetron.sunscreen.neo.element.impl.ButtonElement;
 import me.combimagnetron.sunscreen.neo.element.impl.SelectorElement;
 import me.combimagnetron.sunscreen.neo.element.impl.text.TextFieldElement;
@@ -27,16 +27,20 @@ import me.combimagnetron.sunscreen.neo.graphic.text.style.impl.color.TextColor;
 import me.combimagnetron.sunscreen.neo.graphic.text.style.impl.font.FontProperties;
 import me.combimagnetron.sunscreen.neo.input.context.TextInputContext;
 import me.combimagnetron.sunscreen.neo.layout.Layout;
-import me.combimagnetron.sunscreen.neo.property.*;
+import me.combimagnetron.sunscreen.neo.property.Decorator;
+import me.combimagnetron.sunscreen.neo.property.Position;
+import me.combimagnetron.sunscreen.neo.property.Size;
+import me.combimagnetron.sunscreen.neo.property.Visibility;
 import me.combimagnetron.sunscreen.neo.registry.Registries;
 import me.combimagnetron.sunscreen.neo.theme.ModernTheme;
 import me.combimagnetron.sunscreen.neo.theme.color.ColorSchemes;
 import me.combimagnetron.sunscreen.neo.theme.decorator.Target;
 import me.combimagnetron.sunscreen.neo.theme.decorator.ThemeDecorator;
-import net.kyori.adventure.key.Key;
 import net.kyori.adventure.text.Component;
 import org.apache.commons.lang3.StringUtils;
 import org.jetbrains.annotations.NotNull;
+
+import java.io.IOException;
 
 import static me.combimagnetron.sunscreen.neo.graphic.text.Text.vanilla;
 
@@ -100,7 +104,7 @@ public class EditorMenuTemplate implements MenuTemplate {
         ).element(
             Elements.shape(Identifier.of("left_background"), Shape.rectangle(Vec2i.of(143, 450)), Color.of(13, 13, 13)).position(Position.fixed(Vec2i.of(657, 0)))
         ).element(
-            EditorElements.preview(Identifier.of("preview"), controller).position(Position.fixed(Vec2i.of(139, 15))).size(Size.fixed(Vec2i.of(518, 432))).scale(Scale.fixed(1.561)).z(Z.z(0.1f))
+            EditorElements.preview(Identifier.of("preview"), controller).position(Position.fixed(Vec2i.of(139, 15))).size(Size.fixed(Vec2i.of(518, 432)))
         ).element(
             EditorWidget.widget(
                 Identifier.of("top_right")
@@ -137,23 +141,9 @@ public class EditorMenuTemplate implements MenuTemplate {
                 .position(Position.fixed(Vec2i.of(0, 14))).size(Size.fixed(Vec2i.of(141, 187))))
             .size(Size.fixed(Vec2i.of(141, 201))).position(Position.fixed(Vec2i.of(658, 15)))
         ).element(
-            EditorWidget.widget(
-                Identifier.of("mid_right")
-            ).tab(
-                EditorWidgetTab.tab(
-                        vanilla("Color"),
-                        Position.fixed(Vec2i.of(658, 217))
-                    )
-                    .position(Position.fixed(Vec2i.of(0, 14)))
-                    .size(Size.fixed(Vec2i.of(141, 102)))
-            ).tab(
-                EditorWidgetTab.tab(
-                        vanilla("Palette"),
-                        Position.fixed(Vec2i.of(658, 217))
-                    )
-                    .position(Position.fixed(Vec2i.of(0, 14)))
-                    .size(Size.fixed(Vec2i.of(141, 102)))
-            ).size(Size.fixed(Vec2i.of(141, 116))).position(Position.fixed(Vec2i.of(658, 217)))
+            EditorElements.pixelArtPanel(Identifier.of("mid_right/pixel_art"), controller).position(Position.fixed(Vec2i.of(658, 217))).size(Size.fixed(Vec2i.of(141, 132)))
+        ).element(
+            EditorElements.elementPanel(Identifier.of("mid_right/element"), controller).position(Position.fixed(Vec2i.of(658, 217))).size(Size.fixed(Vec2i.of(141, 115)))
         ).element(
             EditorWidget.widget(
                 Identifier.of("low_right")
@@ -169,6 +159,9 @@ public class EditorMenuTemplate implements MenuTemplate {
                         vanilla("Property"),
                         Position.fixed(Vec2i.of(658, 334))
                     )
+                    .add(new SelectorElement(Identifier.of("low_right/page_view/mode"), 11).entry(vanilla("Fixed")).entry(vanilla("Center")).entry(vanilla("Percent")).select(1).position(Position.fixed(Vec2i.of(2, 2))).size(Size.fixed(Vec2i.of(137, 11))))
+                    .add(EditorElements.value(Identifier.of("low_right/page_view/position")).position(Position.fixed(Vec2i.of(2, 15))))
+                    .add(EditorElements.value(Identifier.of("low_right/page_view/anchor")).position(Position.fixed(Vec2i.of(2, 62))))
                     .position(Position.fixed(Vec2i.of(0, 14))).
                     size(Size.fixed(Vec2i.of(141, 101)))
                 ).size(Size.fixed(Vec2i.of(141, 115))).position(Position.fixed(Vec2i.of(658, 334)))
@@ -181,11 +174,10 @@ public class EditorMenuTemplate implements MenuTemplate {
                         Position.fixed(Vec2i.of(15, 15))
                     )
                     .add(EditorElements.layerOverview(Identifier.of("top_left/layer_overview"), controller).position(Position.nil()).size(Size.fixed(Vec2i.of(123, 136))))
-                    .add(Elements.button(Identifier.of("top_left/layer_button"), Text.adventure(Component.text("aaaa", net.kyori.adventure.text.format.TextColor.color(125, 240, 3)).font(Key.key("sunscreen", "font/minecraft"))), Vec2i.of(7, 2)).size(Size.fixed(Vec2i.of(59, 11))).position(Position.fixed(Vec2i.of(2, 138))).listen().click(event -> {
+                    .add(Elements.button(Identifier.of("top_left/layer_button"), vanilla("New Page"), Vec2i.of(7, 2)).size(Size.fixed(Vec2i.of(59, 11))).position(Position.fixed(Vec2i.of(2, 138))).listen().click(event -> {
                         if (!(event.element() instanceof ButtonElement)) return;
                         if (!event.element().identifier().key().string().equals("top_left/layer_button")) return;
-                        ActiveMenu menu = event.menu();
-                        menu.element(Identifier.of("new_layer/wizard")).visibility(Visibility.visible());
+                        controller.tool(Tools.page());
                     }).back())
                     .add(Elements.button(Identifier.of("top_left/element_button"), vanilla("New Element"), Vec2i.of(1, 2)).size(Size.fixed(Vec2i.of(59, 11))).position(Position.fixed(Vec2i.of(62, 138))))
                     .position(Position.fixed(Vec2i.of(0, 14))).size(Size.fixed(Vec2i.of(123, 151)))
@@ -205,11 +197,51 @@ public class EditorMenuTemplate implements MenuTemplate {
                     .add(EditorElements.elementLibrary(Identifier.of("bottom_left/element_library"), controller).size(Size.fixed(Vec2i.of(123, 241))).position(Position.fixed(Vec2i.of(0, 13))))
             ).size(Size.fixed(Vec2i.of(123, 267))).position(Position.fixed(Vec2i.of(15, 181))))
         .element(
-            EditorElements.frame(Identifier.of("top_frame")).position(Position.fixed(Vec2i.of(139, 1))).size(Size.fixed(Vec2i.of(660, 13)))
+            EditorElements.frame(Identifier.of("top_frame")).position(Position.fixed(Vec2i.of(267, 1))).size(Size.fixed(Vec2i.of(532, 13)))
         ).element(
-            EditorElements.frame(Identifier.of("actions_frame")).position(Position.fixed(Vec2i.of(37, 1))).size(Size.fixed(Vec2i.of(101, 13)))
+            EditorElements.frame(Identifier.of("actions_frame")).position(Position.fixed(Vec2i.of(37, 1))).size(Size.fixed(Vec2i.of(229, 13)))
         ).element(
             Elements.image(Identifier.of("viz_logo"), Canvas.resource("editor_assets/viz_logo.png")).position(Position.fixed(Vec2i.of(1, 1)))
+        ).element(
+            Elements.button(Identifier.of("actions/save"), vanilla("Save"), Vec2i.of(5, 2)).size(Size.fixed(Vec2i.of(40, 11))).position(Position.fixed(Vec2i.of(40, 2))).listen().click(event -> {
+                if (!(event.element() instanceof ButtonElement)) return;
+                if (!event.element().identifier().key().string().equals("actions/save")) return;
+                try {
+                    EditorProjectStore.save(controller.project());
+                    event.user().message(Component.text("Project saved."));
+                } catch (IOException exception) {
+                    event.user().message(Component.text("Save failed."));
+                }
+            }).back()
+        ).element(
+            Elements.button(Identifier.of("actions/view"), vanilla("View"), Vec2i.of(6, 2)).size(Size.fixed(Vec2i.of(40, 11))).position(Position.fixed(Vec2i.of(83, 2))).listen().click(event -> {
+                if (!(event.element() instanceof ButtonElement)) return;
+                if (!event.element().identifier().key().string().equals("actions/view")) return;
+                try {
+                    EditorProjectStore.save(controller.project());
+                    event.menu().show(new EditorProjectDisplayMenuTemplate(controller.project()));
+                } catch (IOException exception) {
+                    event.user().message(Component.text("Open failed."));
+                }
+            }).back()
+        ).element(
+            Elements.button(Identifier.of("actions/undo"), vanilla("Undo"), Vec2i.of(5, 2)).size(Size.fixed(Vec2i.of(40, 11))).position(Position.fixed(Vec2i.of(126, 2))).listen().click(event -> {
+                if (!(event.element() instanceof ButtonElement)) return;
+                if (!event.element().identifier().key().string().equals("actions/undo")) return;
+                controller.undo();
+            }).back()
+        ).element(
+            Elements.button(Identifier.of("actions/redo"), vanilla("Redo"), Vec2i.of(5, 2)).size(Size.fixed(Vec2i.of(40, 11))).position(Position.fixed(Vec2i.of(169, 2))).listen().click(event -> {
+                if (!(event.element() instanceof ButtonElement)) return;
+                if (!event.element().identifier().key().string().equals("actions/redo")) return;
+                controller.redo();
+            }).back()
+        ).element(
+            Elements.button(Identifier.of("actions/delete"), vanilla("Delete"), Vec2i.of(6, 2)).size(Size.fixed(Vec2i.of(52, 11))).position(Position.fixed(Vec2i.of(212, 2))).listen().click(event -> {
+                if (!(event.element() instanceof ButtonElement)) return;
+                if (!event.element().identifier().key().string().equals("actions/delete")) return;
+                controller.deleteSelected();
+            }).back()
         ).element(
                 Layout.group(
                     Identifier.of("new_layer/wizard"),
@@ -245,12 +277,13 @@ public class EditorMenuTemplate implements MenuTemplate {
                         PageNameElement nameElement = (PageNameElement) layout.child(Identifier.of("new_layer/wizard/name_element"));
                         TextFieldElement xFieldElement = (TextFieldElement) layout.child(Identifier.of("new_layer/wizard/x_field"));
                         TextFieldElement yFieldElement = (TextFieldElement) layout.child(Identifier.of("new_layer/wizard/y_field"));
-                        if (!nameElement.validate()) return;
-                        if (!StringUtils.isNumeric(xFieldElement.value()) || !StringUtils.isNumeric(yFieldElement.value())) return;
-                        controller.page(new VirtualPage(Vec2i.of(Integer.parseInt(xFieldElement.value()), Integer.parseInt(yFieldElement.value())), nameElement.fakeIdentifier(), nameElement.displayName(), controller));
+                        if (!validPage(layout)) return;
+                        VirtualPage page = new VirtualPage(Vec2i.of(Integer.parseInt(xFieldElement.value()), Integer.parseInt(yFieldElement.value())), nameElement.fakeIdentifier(), nameElement.displayName(), controller);
+                        controller.page(page).select(page);
                         nameElement.clear();
                         xFieldElement.clear();
                         yFieldElement.clear();
+                        updateCreatePageButton(layout);
                         layout.visibility(Visibility.hidden());
                         event.menu().inputHandler().peek(TextInputContext.class, TextInputContext::clear, event.user());
                     }).back().size(Size.fixed(Vec2i.of(96, 14))).position(Position.fixed(Vec2i.of(100, 254))).decorator(Decorator.decorator(Target.identifier(Identifier.of("sunscreen", "internal/editor/theme/decorator/button_confirm")))),
@@ -261,6 +294,13 @@ public class EditorMenuTemplate implements MenuTemplate {
                     ).listen().click(event -> {
                         if (!event.element().identifier().key().string().equals("new_layer/wizard/cancel_button")) return;
                         Layout<?> layout = (Layout<?>) event.menu().element(Identifier.of("new_layer/wizard"));
+                        PageNameElement nameElement = (PageNameElement) layout.child(Identifier.of("new_layer/wizard/name_element"));
+                        TextFieldElement xFieldElement = (TextFieldElement) layout.child(Identifier.of("new_layer/wizard/x_field"));
+                        TextFieldElement yFieldElement = (TextFieldElement) layout.child(Identifier.of("new_layer/wizard/y_field"));
+                        nameElement.clear();
+                        xFieldElement.clear();
+                        yFieldElement.clear();
+                        updateCreatePageButton(layout);
                         layout.visibility(Visibility.hidden());
                     }).back().size(Size.fixed(Vec2i.of(96, 14))).position(Position.fixed(Vec2i.of(2, 254))),
                     Elements.textField(
@@ -272,12 +312,7 @@ public class EditorMenuTemplate implements MenuTemplate {
                             return;
                         }
                         if (!textFieldElement.selected()) return;
-                        ButtonElement buttonElement = (ButtonElement) layout.child(Identifier.of("new_layer/wizard/confirm_button"));
-                        if (!textFieldElement.value().isEmpty() && StringUtils.isNumeric(textFieldElement.value())) {
-                            buttonElement.enable();
-                            return;
-                        }
-                        buttonElement.disable();
+                        updateCreatePageButton(layout);
                     }).back().decorator(Decorator.decorator(Target.typed(EditorNameElement.class))).size(Size.fixed(Vec2i.of(94, 11))).position(Position.fixed(Vec2i.of(2, 61))).decorator(Decorator.decorator(Target.typed(SelectorElement.class))),
                     Elements.label(
                         Identifier.of("new_layer/wizard/size_cross"),
@@ -292,60 +327,39 @@ public class EditorMenuTemplate implements MenuTemplate {
                             return;
                         }
                         if (!textFieldElement.selected()) return;
-                        ButtonElement buttonElement = (ButtonElement) layout.child(Identifier.of("new_layer/wizard/confirm_button"));
-                        if (!textFieldElement.value().isEmpty() && StringUtils.isNumeric(textFieldElement.value())) {
-                            buttonElement.enable();
-                            return;
-                        }
-                        buttonElement.disable();
+                        updateCreatePageButton(layout);
                     }).back().decorator(Decorator.decorator(Target.typed(EditorNameElement.class))).size(Size.fixed(Vec2i.of(94, 11))).position(Position.fixed(Vec2i.of(102, 61))).decorator(Decorator.decorator(Target.typed(SelectorElement.class))),
                     Elements.label(
                         Identifier.of("new_layer/wizard/size_label"),
                         Text.basic("Size").font(Registries.fonts().get(Identifier.of("sunscreen", "font/minecraft"))).color(TextColor.color(Color.of(180, 180, 180))).fontProperties(FontProperties.properties().baseline(-2))
                     ).size(Size.fixed(Vec2i.of(143, 20))).position(Position.fixed(Vec2i.of(2, 53)))
                 ).size(Size.fixed(Vec2i.of(400, 400))).position(Position.fixed(Vec2i.of(301, 105))).visibility(Visibility.hidden())
-            ).element(
-                Layout.group(
-                    Identifier.of("new_element/wizard"),
-                    EditorElements.frame(
-                        Identifier.of("new_element/wizard/frame")
-                    ).size(Size.fixed(Vec2i.of(198, 261))).position(Position.fixed(Vec2i.of(0, 9))),
-                    Elements.image(
-                        Identifier.of("new_element/wizard/frame_extension"),
-                        Canvas.empty(Vec2i.of(198, 9)).fill(Vec2i.zero(), Vec2i.of(198, 9), Color.of(27, 27, 27))
-                    ).position(Position.nil()),
-                    Elements.label(
-                        Identifier.of("new_element/wizard/label"),
-                        Text.basic("New Element").font(Registries.fonts().get(Identifier.of("sunscreen", "font/minecraft"))).fontProperties(FontProperties.properties().baseline(-2))
-                    ).size(Size.fixed(Vec2i.of(143, 20))).position(Position.fixed(Vec2i.of(1, 1))),
-                    Elements.button(
-                        Identifier.of("new_element/wizard/confirm_button"),
-                        Text.basic("Create").font(Registries.fonts().get(Identifier.of("sunscreen", "font/minecraft"))).fontProperties(FontProperties.properties().baseline(-2)),
-                        Vec2i.of(31, 3)
-                    ).listen().click(event -> {
-                        if (!event.element().identifier().key().string().equals("new_element/wizard/confirm_button")) return;
-                        Layout<?> layout = (Layout<?>) event.menu().element(Identifier.of("new_element/wizard"));
-                        ElementConstructionProvider<?> provider = controller.provider();
-                        if (provider == null) return;
-                        ModernElement<?, Canvas> element = provider.construct(layout, controller.providerArgumentMap().get(provider).toArray(new Argument[]{}));
-                        controller.removeElementSetup();
-                        VirtualPage page = controller.selected();
-                        if (page == null) {
-                            return;
-                        }
-                        page.page(new VirtualElement<>(Vec2i.of(20, 20), element, element.identifier()));
-                    }).back().size(Size.fixed(Vec2i.of(96, 14))).position(Position.fixed(Vec2i.of(100, 254))).decorator(Decorator.decorator(Target.identifier(Identifier.of("sunscreen", "internal/editor/theme/decorator/button_confirm")))),
-                    Elements.button(
-                        Identifier.of("new_element/wizard/cancel_button"),
-                        Text.basic("Cancel").font(Registries.fonts().get(Identifier.of("sunscreen", "font/minecraft"))).color(TextColor.color(Color.of(180, 180, 180))).fontProperties(FontProperties.properties().baseline(-2)),
-                        Vec2i.of(31, 3)
-                    ).listen().click(event -> {
-                        if (!event.element().identifier().key().string().equals("new_element/wizard/cancel_button")) return;
-                        Layout<?> layout = (Layout<?>) event.menu().element(Identifier.of("new_element/wizard"));
-                        layout.visibility(Visibility.hidden());
-                    }).back().size(Size.fixed(Vec2i.of(96, 14))).position(Position.fixed(Vec2i.of(2, 254)))
-                ).size(Size.fixed(Vec2i.of(400, 400))).position(Position.fixed(Vec2i.of(301, 105))).visibility(Visibility.hidden())
             );
+    }
+
+    private boolean validPage(@NotNull Layout<?> layout) {
+        PageNameElement nameElement = (PageNameElement) layout.child(Identifier.of("new_layer/wizard/name_element"));
+        TextFieldElement xFieldElement = (TextFieldElement) layout.child(Identifier.of("new_layer/wizard/x_field"));
+        TextFieldElement yFieldElement = (TextFieldElement) layout.child(Identifier.of("new_layer/wizard/y_field"));
+        if (nameElement == null || xFieldElement == null || yFieldElement == null) return false;
+        if (!nameElement.validate()) return false;
+        if (controller.page(nameElement.fakeIdentifier()) != null) return false;
+        return validSize(xFieldElement.value()) && validSize(yFieldElement.value());
+    }
+
+    private void updateCreatePageButton(@NotNull Layout<?> layout) {
+        ButtonElement buttonElement = (ButtonElement) layout.child(Identifier.of("new_layer/wizard/confirm_button"));
+        if (buttonElement == null) return;
+        if (validPage(layout)) {
+            buttonElement.enable();
+            return;
+        }
+        buttonElement.disable();
+    }
+
+    private boolean validSize(@NotNull String value) {
+        if (!StringUtils.isNumeric(value)) return false;
+        return Integer.parseInt(value) > 0;
     }
 
 }

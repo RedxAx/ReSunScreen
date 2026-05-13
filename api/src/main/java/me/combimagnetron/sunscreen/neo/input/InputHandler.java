@@ -18,11 +18,12 @@ import me.combimagnetron.sunscreen.neo.input.context.ScrollInputContext;
 import me.combimagnetron.sunscreen.neo.input.context.TextInputContext;
 import me.combimagnetron.sunscreen.user.SunscreenUser;
 import me.combimagnetron.sunscreen.util.Scheduler;
-import net.kyori.adventure.text.Component;
 import org.jetbrains.annotations.NotNull;
 
-import java.beans.EventHandler;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.function.Consumer;
 import java.util.function.Function;
 
@@ -89,12 +90,11 @@ public class InputHandler {
     }
 
     public void unlink(@NotNull Identifier elementId) {
-        System.out.println("removing it maybe? " + elementId.string() + " " + subscriptions.get(elementId));
-        for (EventSubscription<?> eventSubscription : List.copyOf(subscriptions.get(elementId))) {
+        List<EventSubscription<?>> list = subscriptions.remove(elementId);
+        if (list == null) return;
+        for (EventSubscription<?> eventSubscription : List.copyOf(list)) {
             eventSubscription.close();
         }
-        subscriptions.remove(elementId);
-        System.out.println("removed it maybe? " + elementId.string() + " " + subscriptions.get(elementId));
     }
 
     public void cursor(@NotNull CursorStyle cursorStyle) {

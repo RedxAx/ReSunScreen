@@ -229,7 +229,6 @@ public interface Layout<E extends ModernElement<E, Canvas>> extends ElementConta
         @Override
         public @NotNull ElementContainer<@NotNull Layout<E>> remove(@NotNull Identifier identifier) {
             elements.remove(identifier);
-            //handler.unlink(identifier);
             return this;
         }
 
@@ -246,6 +245,15 @@ public interface Layout<E extends ModernElement<E, Canvas>> extends ElementConta
         @Override
         public @NotNull <T, C> Layout<E> property(@NotNull Property<T, C> property) {
             propertyMap.put((Class<? extends Property<?, ?>>) property.getClass(), property);
+            return this;
+        }
+
+        @Override
+        public @NotNull Layout<E> visibility(@NotNull Visibility visibility) {
+            property(visibility);
+            for (ModernElement<?, Canvas> element : elements.values()) {
+                element.visibility(visibility);
+            }
             return this;
         }
 

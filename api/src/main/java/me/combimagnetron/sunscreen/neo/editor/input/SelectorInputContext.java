@@ -46,8 +46,12 @@ public record SelectorInputContext(@NotNull ImmutableMap<Identifier, InnerContex
 
     }
 
-    public record MultiValueInnerContext(Integer[] values) implements InnerContext<Integer> {
+    public record MultiValueInnerContext(Integer[] values, int active) implements InnerContext<Integer> {
         private final static int SIZE = 8;
+
+        public MultiValueInnerContext(Integer[] values) {
+            this(values, -1);
+        }
 
         @Override
         public int size() {
@@ -57,8 +61,12 @@ public record SelectorInputContext(@NotNull ImmutableMap<Identifier, InnerContex
     }
 
 
-    public record ValueInnerContext(Integer[] values) implements InnerContext<Integer> {
+    public record ValueInnerContext(Integer[] values, int active) implements InnerContext<Integer> {
         private final static int SIZE = 4;
+
+        public ValueInnerContext(Integer[] values) {
+            this(values, -1);
+        }
 
         @Override
         public int size() {

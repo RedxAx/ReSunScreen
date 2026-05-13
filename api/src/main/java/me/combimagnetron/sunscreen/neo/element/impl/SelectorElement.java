@@ -52,8 +52,29 @@ public class SelectorElement extends GenericInteractableModernElement<SelectorEl
         return this;
     }
 
+    public @NotNull SelectorElement entry(int index, @NotNull Text text) {
+        entries.set(index, text);
+        return this;
+    }
+
+    public @NotNull SelectorElement removeEntry(int index) {
+        if (entries.size() <= 1) return this;
+        entries.remove(index);
+        selected = Math.clamp(selected, 0, entries.size() - 1);
+        hovered = -1;
+        return this;
+    }
+
+    public @NotNull List<Text> entries() {
+        return List.copyOf(entries);
+    }
+
+    public int height() {
+        return height;
+    }
+
     public @NotNull SelectorElement select(int entry) {
-        this.selected = entry;
+        this.selected = Math.clamp(entry, 0, Math.max(0, entries.size() - 1));
         return this;
     }
 
@@ -130,6 +151,8 @@ public class SelectorElement extends GenericInteractableModernElement<SelectorEl
         if (!(themeDecorator instanceof ThemeDecorator.StateNineSliceThemeDecorator decorator))
             return Canvas.error(size);
         Vec2i sizeVec = PropertyHelper.vectorOrThrow(size, Vec2i.class);
+        if (entries.isEmpty()) return Canvas.empty(sizeVec);
+        selected = Math.clamp(selected, 0, entries.size() - 1);
         Canvas canvas = Canvas.empty(sizeVec);
         int x = 0;
         for (int i = 0; i < entries.size(); i++) {

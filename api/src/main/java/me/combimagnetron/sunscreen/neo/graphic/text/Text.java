@@ -78,6 +78,8 @@ public sealed interface Text extends Renderable<Size, Canvas> permits TextImpl {
 
     @NotNull Decoration decoration();
 
+    @NotNull String content();
+
     @NotNull Text content(@NotNull String string);
 
     @NotNull Text content(@NotNull Component component);

@@ -18,14 +18,14 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.jspecify.annotations.NonNull;
 
-import java.util.*;
+import java.util.LinkedList;
+import java.util.List;
 import java.util.concurrent.ThreadLocalRandom;
 
 public class EditorWidget<M extends ModernElement<M, Canvas>> extends Layout.GroupLayout<M> {
     private final int shittyId = ThreadLocalRandom.current().nextInt();
     private final SelectorElement selectorElement = new SelectorElement(Identifier.of("selector_tab_" + shittyId), 11).position(Position.fixed(Vec2i.of(1, 1)));
     private final List<EditorWidgetTab<?>> tabs = new LinkedList<>();
-    private int lastTab = 0;
 
     protected EditorWidget(@NotNull Identifier identifier) {
         super(identifier);
@@ -40,6 +40,16 @@ public class EditorWidget<M extends ModernElement<M, Canvas>> extends Layout.Gro
     public @NotNull EditorWidget<M> tab(@NotNull EditorWidgetTab<?> tab) {
         tabs.add(tab);
         return this;
+    }
+
+    public @Nullable ModernElement<?, Canvas> nested(@NotNull Identifier identifier) {
+        ModernElement<?, Canvas> child = child(identifier);
+        if (child != null) return child;
+        for (EditorWidgetTab<?> tab : tabs) {
+            child = tab.child(identifier);
+            if (child != null) return child;
+        }
+        return null;
     }
 
     @Override
@@ -64,8 +74,8 @@ public class EditorWidget<M extends ModernElement<M, Canvas>> extends Layout.Gro
     private void handleClick(@NotNull UserClickElementEvent<?> event) {
         if (event.user() != handler().user()) return;
         if (!(event.element() instanceof SelectorElement element)) return;
-        if (element.identifier() != selectorElement.identifier()) return;
-        int selected = element.selected();
+        if (!element.identifier().equals(selectorElement.identifier())) return;
+        int selected = selectedTab();
         for (int i = 0; i < tabs.size(); i++) {
             EditorWidgetTab<?> tab = tabs.get(i);
             if (i == selected) {
@@ -81,14 +91,22 @@ public class EditorWidget<M extends ModernElement<M, Canvas>> extends Layout.Gro
     public @NotNull Canvas render(@NotNull Size property, @Nullable RenderContext context) {
         Vec2i sizeVec = PropertyHelper.vectorOrThrow(size(), Vec2i.class);
         Canvas canvas = Canvas.empty(sizeVec);
-        canvas.place(tabs.get(selectorElement.selected()).render(property, context), Vec2i.of(0, 14));
+        if (!tabs.isEmpty()) {
+            canvas.place(tabs.get(selectedTab()).render(property, context), Vec2i.of(0, 14));
+        }
         canvas.place(super.render(property, context), Vec2i.zero());
         return canvas;
     }
 
     public @NotNull EditorWidget<M> tab(int selected) {
-        selectorElement.select(selected);
+        if (tabs.isEmpty()) return this;
+        selectorElement.select(Math.clamp(selected, 0, tabs.size() - 1));
         return this;
+    }
+
+    private int selectedTab() {
+        if (tabs.isEmpty()) return 0;
+        return Math.clamp(selectorElement.selected(), 0, tabs.size() - 1);
     }
 
 }

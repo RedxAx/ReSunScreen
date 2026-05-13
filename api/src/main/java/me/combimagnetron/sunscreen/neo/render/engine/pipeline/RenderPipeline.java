@@ -30,7 +30,7 @@ public final class RenderPipeline {
     private final Collection<Identifier> remove = new ConcurrentLinkedDeque<>();
     private final SunscreenUser<?> user;
     private volatile RenderContext context;
-    private RenderPhase<?> state;
+    private volatile RenderPhase<?> state;
 
     RenderPipeline(@NotNull ScheduledExecutorService scheduler, @NotNull SunscreenUser<?> user, @NotNull UUID menuUuid,
                    @NotNull Collection<ElementLike<?>> initialElements, @NotNull Collection<MenuComponent<?>> loadedComponents) {
@@ -56,7 +56,9 @@ public final class RenderPipeline {
     private void tick() {
         try {
             long currentTick = tick.incrementAndGet();
-            Pair<RenderPhase<?>, RenderContext> pair = (Pair<RenderPhase<?>, RenderContext>) state.advance(context);
+            RenderPhase<?> currentState = state;
+            if (currentState == null) return;
+            Pair<RenderPhase<?>, RenderContext> pair = (Pair<RenderPhase<?>, RenderContext>) currentState.advance(context);
             state = pair.left();
             context = pair.right();
             Dispatcher.dispatcher().post(new MenuTickEndEvent(menuUuid, currentTick));

@@ -110,6 +110,11 @@ public final class TextImpl implements Text {
     }
 
     @Override
+    public @NotNull String content() {
+        return content;
+    }
+
+    @Override
     public @NotNull Text content(@NotNull String string) {
         return new TextImpl(string, font, fontProperties, textColor, highlight, children, decoration);
     }

@@ -15,18 +15,13 @@ import me.combimagnetron.sunscreen.neo.graphic.text.style.impl.color.TextColor;
 import me.combimagnetron.sunscreen.neo.input.InputHandler;
 import me.combimagnetron.sunscreen.neo.input.ListenerReferences;
 import me.combimagnetron.sunscreen.neo.input.context.MouseInputContext;
-import me.combimagnetron.sunscreen.neo.property.Position;
 import me.combimagnetron.sunscreen.neo.property.Size;
 import me.combimagnetron.sunscreen.neo.render.engine.context.RenderContext;
 import me.combimagnetron.sunscreen.util.helper.HoverHelper;
 import me.combimagnetron.sunscreen.util.helper.PropertyHelper;
 import me.combimagnetron.sunscreen.util.helper.editor.NameHelper;
-import net.kyori.adventure.text.Component;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
-
-import java.util.Collection;
-import java.util.Objects;
 
 public class LayerOverviewElement extends GenericInteractableModernElement<LayerOverviewElement, Canvas, LayerOverviewElement.LayerOverviewElementListenerReferences> {
     private final LayerOverviewElementListenerReferences references = new LayerOverviewElementListenerReferences(this);
@@ -51,12 +46,25 @@ public class LayerOverviewElement extends GenericInteractableModernElement<Layer
     }
 
     private void handleCursor(@NotNull UserMoveStateChangeEvent event) {
-        if (event.user() != inputHandler().user()) return;
+        InputHandler inputHandler = inputHandler();
+        if (inputHandler == null || event.user() != inputHandler.user()) return;
         MouseInputContext context = event.context();
         Vec2i cursor = context.position();
         boolean in = HoverHelper.in(this, cursor);
-        click--;
+        int pageCount = controller.pages().size();
+        if (pageCount == 0) {
+            selected = -1;
+            hardSelected = -1;
+            unfolded = false;
+            return;
+        }
+        if (hardSelected >= pageCount) {
+            hardSelected = -1;
+            unfolded = false;
+        }
+        if (click > 0) click--;
         if (click == 1) {
+            if (selected < 0 || selected >= pageCount) return;
             if (hardSelected != -1 && selected == hardSelected) {
                 unfolded = !unfolded;
             }
@@ -68,7 +76,7 @@ public class LayerOverviewElement extends GenericInteractableModernElement<Layer
             return;
         }
         if (!in && cursorStyle == CursorStyle.click()) {
-            inputHandler().cursor(CursorStyle.pointer());
+            inputHandler.cursor(CursorStyle.pointer());
             cursorStyle = CursorStyle.pointer();
             return;
         }
@@ -87,13 +95,13 @@ public class LayerOverviewElement extends GenericInteractableModernElement<Layer
                 selected = visualIndex - childCount;
             }
         }
-        if (selected > controller.pages().size() - 1) {
+        if (selected < 0 || selected > pageCount - 1) {
             selected = -1;
-            inputHandler().cursor(CursorStyle.pointer());
+            inputHandler.cursor(CursorStyle.pointer());
             cursorStyle = CursorStyle.pointer();
             return;
         }
-        inputHandler().cursor(CursorStyle.click());
+        inputHandler.cursor(CursorStyle.click());
         cursorStyle = CursorStyle.click();
         if (!context.leftPressed()) return;
         click = 3;
@@ -124,12 +132,17 @@ public class LayerOverviewElement extends GenericInteractableModernElement<Layer
             pageIndex++;
         }
         if (selected != -1) {
-            fill(canvas, selected, sizeVec);
+            fill(canvas, visualIndex(selected), sizeVec);
         }
         if (hardSelected != -1) {
-            fill(canvas, hardSelected, sizeVec);
+            fill(canvas, visualIndex(hardSelected), sizeVec);
         }
         return canvas;
+    }
+
+    private int visualIndex(int index) {
+        if (!unfolded || hardSelected == -1 || index <= hardSelected) return index;
+        return index + controller.pages().get(hardSelected).children().size();
     }
 
     private void fill(@NotNull Canvas canvas, int index, @NotNull Vec2i sizeVec) {

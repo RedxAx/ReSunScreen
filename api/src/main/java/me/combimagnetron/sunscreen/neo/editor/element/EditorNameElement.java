@@ -15,11 +15,11 @@ import me.combimagnetron.sunscreen.neo.input.context.TextInputContext;
 import me.combimagnetron.sunscreen.neo.property.Size;
 import me.combimagnetron.sunscreen.neo.registry.Registries;
 import me.combimagnetron.sunscreen.neo.render.engine.context.RenderContext;
+import me.combimagnetron.sunscreen.neo.theme.ModernTheme;
 import me.combimagnetron.sunscreen.neo.theme.decorator.ThemeDecorator;
 import me.combimagnetron.sunscreen.util.helper.HoverHelper;
 import me.combimagnetron.sunscreen.util.helper.PropertyHelper;
 import me.combimagnetron.sunscreen.util.helper.editor.NameHelper;
-import net.kyori.adventure.text.Component;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -43,23 +43,23 @@ public class EditorNameElement extends TextElement<EditorNameElement> {
     }
 
     private void handleCursor(@NotNull UserMoveStateChangeEvent stateChangeEvent) {
+        InputHandler inputHandler = inputHandler();
+        if (inputHandler == null || stateChangeEvent.user() != inputHandler.user()) return;
         final MouseInputContext inputContext = stateChangeEvent.context();
         Vec2i cursor = inputContext.position();
         if (visibility().hide()) return;
-        if (stateChangeEvent.user() != inputHandler().user()) return;
         boolean hover = HoverHelper.in(this, cursor);
         if (!hover) {
             selected = false;
-            return;
-        }
-        if (!hover && style == CursorStyle.textCaret()) {
-            style = CursorStyle.pointer();
-            inputHandler().cursor(CursorStyle.pointer());
+            if (style == CursorStyle.textCaret()) {
+                style = CursorStyle.pointer();
+                inputHandler.cursor(CursorStyle.pointer());
+            }
             return;
         }
         TextInputContext textInputContext = context();
         if (!inputContext.leftPressed() && !textInputContext.active()) {
-            inputHandler().cursor(CursorStyle.pointer());
+            inputHandler.cursor(CursorStyle.pointer());
             style = CursorStyle.pointer();
             return;
         }
@@ -67,14 +67,15 @@ public class EditorNameElement extends TextElement<EditorNameElement> {
         if (textInputContext.active()) {
             return;
         }
-        inputHandler().anvil(true);
-        inputHandler().peek(MouseInputContext.class, old -> old.withLeftPressed(false), inputHandler().user());
-        inputHandler().cursor(CursorStyle.textCaret());
+        inputHandler.anvil(true);
+        inputHandler.peek(MouseInputContext.class, old -> old.withLeftPressed(false), inputHandler.user());
+        inputHandler.cursor(CursorStyle.textCaret());
         style = CursorStyle.textCaret();
     }
 
     private void handleText(@NotNull UserTextStateChangeEvent event) {
-        if (event.user() != inputHandler().user()) return;
+        InputHandler inputHandler = inputHandler();
+        if (inputHandler == null || event.user() != inputHandler.user()) return;
         if (!selected) return;
         TextInputContext context = event.context();
         this.displayName = context.stream().value();
@@ -89,18 +90,22 @@ public class EditorNameElement extends TextElement<EditorNameElement> {
     @Override
     public @NotNull Canvas render(@NotNull Size property, @Nullable RenderContext context) {
         if (context == null) return Canvas.error(size());
-        ThemeDecorator decorator = context.decorator(this);
         Vec2i sizeVec = PropertyHelper.vectorOrThrow(size(), Vec2i.class);
         Vec2i offset = sizeVec.mul(1, 2).add(0, 12);
         Canvas canvas = Canvas.empty(offset);
-        Canvas decoratorCanvas = decorator.render(size(), context);
-        canvas.place(decoratorCanvas, Vec2i.zero());
+        ThemeDecorator decorator = decorator(context);
+        canvas.place(decorator == null ? FrameElement.frame(sizeVec) : decorator.render(size(), context), Vec2i.zero());
         canvas.text(Text.basic(displayName).font(Registries.fonts().get(Identifier.of("sunscreen", "font/minecraft"))).fontProperties(FontProperties.properties().baseline(-2)), Vec2i.of(1,1));
-        canvas.place(decorator.render(size(), context), offset.mul(0, 1).sub(0, 11));
+        canvas.place(decorator == null ? FrameElement.frame(sizeVec) : decorator.render(size(), context), offset.mul(0, 1).sub(0, 11));
         String id = fakeIdentifier.string();
         if (displayName.isEmpty()) id = "";
         canvas.text(Text.basic(id).font(Registries.fonts().get(Identifier.of("sunscreen", "font/minecraft"))).fontProperties(FontProperties.properties().baseline(-2)), Vec2i.of(1,1).add(offset.mul(0, 1).sub(0, 11)));
         return canvas;
+    }
+
+    private @Nullable ThemeDecorator decorator(@NotNull RenderContext context) {
+        if (context.components().stream().noneMatch(component -> component instanceof ModernTheme)) return null;
+        return context.decorator(this);
     }
 
     public boolean validate() {

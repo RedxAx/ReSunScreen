@@ -12,7 +12,6 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.UnknownNullability;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 
 public class VirtualElement<M extends ModernElement<M, Canvas>> implements VirtualObject<M> {
@@ -31,18 +30,22 @@ public class VirtualElement<M extends ModernElement<M, Canvas>> implements Virtu
 
     }
 
-    public @NotNull VirtualElement<M> add(@NotNull VirtualElement<?> child) {
+    public synchronized @NotNull VirtualElement<M> add(@NotNull VirtualElement<?> child) {
         if (!isElementGroup) throw new IllegalArgumentException("May only add a child element to element groups!");
         this.children.add(child);
         return this;
     }
 
-    public @NotNull Canvas render(@NotNull Vec2i size, @NotNull RenderContext context) {
-        Canvas canvas = target.render(Size.fixed(size), context);
-        for (VirtualElement<?> child : children) {
-            canvas.place(child.render(size, context), child.position);
+    public synchronized @NotNull Canvas render(@NotNull Vec2i size, @NotNull RenderContext context) {
+        Canvas canvas;
+        try {
+            canvas = target.render(Size.fixed(size), context);
+        } catch (RuntimeException ignored) {
+            canvas = Canvas.error(Size.fixed(size));
         }
-        //System.out.println(canvas + " " + canvas.size() + " " + Arrays.toString(canvas.bufferedColorSpace().buffer()));
+        for (VirtualElement<?> child : children) {
+            canvas.place(child.render(child.size(), context), child.position());
+        }
         return canvas;
     }
 
@@ -50,20 +53,20 @@ public class VirtualElement<M extends ModernElement<M, Canvas>> implements Virtu
         return identifier;
     }
 
-    public @NotNull Vec2i size() {
+    public synchronized @NotNull Vec2i size() {
         return target.size().value();
     }
 
-    public @NotNull Vec2i position() {
+    public synchronized @NotNull Vec2i position() {
         return position;
     }
 
-    public @NotNull VirtualElement<M> position(@NotNull Vec2i position) {
+    public synchronized @NotNull VirtualElement<M> position(@NotNull Vec2i position) {
         this.position = position;
         return this;
     }
 
-    public @NotNull VirtualElement<M> size(@NotNull Vec2i size) {
+    public synchronized @NotNull VirtualElement<M> size(@NotNull Vec2i size) {
         target.size(Size.fixed(size));
         return this;
     }
