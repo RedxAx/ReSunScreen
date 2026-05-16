@@ -6,6 +6,8 @@ import me.combimagnetron.sunscreen.neo.ActiveMenu;
 import me.combimagnetron.sunscreen.neo.editor.element.MenuPreviewElement;
 import me.combimagnetron.sunscreen.neo.editor.input.SelectorInputContext;
 import me.combimagnetron.sunscreen.neo.editor.project.EditorProject;
+import me.combimagnetron.sunscreen.neo.editor.project.EditorThemeBuilderState;
+import me.combimagnetron.sunscreen.neo.editor.project.EditorThemes;
 import me.combimagnetron.sunscreen.neo.editor.template.EditorMenuTemplate;
 import me.combimagnetron.sunscreen.neo.editor.template.EditorStartOverviewMenuTemplate;
 import me.combimagnetron.sunscreen.neo.editor.tool.Tool;
@@ -70,6 +72,7 @@ public class EditorController {
     private MenuPreviewElement preview;
     private Color activeColor = Color.of(0, 0, 0);
     private InputHandler selectorInputHandler;
+    private final EditorThemeBuilderState themeBuilderState = new EditorThemeBuilderState();
     private boolean publishingSelectionControls;
     private boolean historyChanging;
 
@@ -103,7 +106,7 @@ public class EditorController {
         identifier = project.identifier();
         displayName = project.displayName();
         theme = null;
-        editor(identifier, displayName, EditorMenuTemplate.EDITOR_THEME);
+        editor(identifier, displayName, EditorThemes.theme(project.themeId()));
         pages.clear();
         pagePositions.clear();
         pageViews.clear();
@@ -135,6 +138,8 @@ public class EditorController {
         selectedElement = null;
         identifier = project.identifier();
         displayName = project.displayName();
+        theme = null;
+        theme(EditorThemes.theme(project.themeId()));
         for (EditorProject.PageData pageData : project.pages()) {
             VirtualPage page = new VirtualPage(pageData.size(), pageData.identifier(), pageData.displayName(), this);
             for (EditorProject.ElementData elementData : pageData.elements()) {
@@ -204,10 +209,23 @@ public class EditorController {
         return theme;
     }
 
+    public @NotNull EditorThemeBuilderState themeBuilderState() {
+        return themeBuilderState;
+    }
+
     public @NotNull EditorController theme(@NotNull VirtualTheme theme) {
         this.theme = theme;
         renderContext = renderContext.withComponents(List.of(theme));
         return this;
+    }
+
+    public @NotNull EditorController theme(@NotNull ModernTheme theme) {
+        VirtualTheme virtualTheme = new VirtualTheme(theme.identifier());
+        if (theme.colorScheme() != null) virtualTheme.colorScheme(theme.colorScheme());
+        for (ThemeDecorator decorator : theme.decorators()) {
+            virtualTheme.decorator(decorator);
+        }
+        return theme(virtualTheme);
     }
 
     public @NotNull EditorController page(@NotNull VirtualPage page) {
@@ -351,11 +369,7 @@ public class EditorController {
         redo.clear();
         this.identifier = identifier;
         this.displayName = displayName;
-        this.theme = new VirtualTheme(theme.identifier());
-        for (ThemeDecorator decorator : theme.decorators()) {
-            this.theme.decorator(decorator);
-            theme(this.theme);
-        }
+        theme(theme);
         if (pages.isEmpty()) page(Vec2i.of(320, 240), Vec2i.of(176, 128));
         if (active == null) return;
         active.show(new EditorMenuTemplate(this));
@@ -427,7 +441,9 @@ public class EditorController {
     }
 
     public @NotNull EditorProject project() {
-        EditorProject project = new EditorProject(displayName, identifier).selectedPage(selectedPage);
+        EditorProject project = new EditorProject(displayName, identifier)
+                .themeId(theme == null ? EditorThemes.MODERN : theme.identifier())
+                .selectedPage(selectedPage);
         for (VirtualPage page : pages()) {
             Vec2i position = pagePosition(page.identifier());
             project.page(EditorProject.page(page, position == null ? Vec2i.zero() : position, pageView(page.identifier())));

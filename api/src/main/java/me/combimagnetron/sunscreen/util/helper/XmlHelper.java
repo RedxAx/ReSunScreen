@@ -11,7 +11,7 @@ public class XmlHelper {
     private XmlHelper() {}
 
     public static @Nullable Element firstWithTag(@NotNull Element element, @NotNull String tag) {
-        NodeList nodeList = element.getElementsByTagName("tag");
+        NodeList nodeList = element.getElementsByTagName(tag);
         int length = nodeList.getLength();
         for (int i = 0; i < length; i++) {
             Node node = nodeList.item(i);

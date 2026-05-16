@@ -5,12 +5,12 @@ import me.combimagnetron.passport.util.math.Vec2i;
 import me.combimagnetron.sunscreen.neo.ActiveMenu;
 import me.combimagnetron.sunscreen.neo.MenuRoot;
 import me.combimagnetron.sunscreen.neo.MenuTemplate;
-import me.combimagnetron.sunscreen.neo.TestMenuTemplate;
 import me.combimagnetron.sunscreen.neo.editor.EditorController;
 import me.combimagnetron.sunscreen.neo.editor.element.EditorElements;
 import me.combimagnetron.sunscreen.neo.editor.element.EditorNameElement;
 import me.combimagnetron.sunscreen.neo.editor.project.EditorProject;
 import me.combimagnetron.sunscreen.neo.editor.project.EditorProjectStore;
+import me.combimagnetron.sunscreen.neo.editor.project.EditorThemes;
 import me.combimagnetron.sunscreen.neo.element.Elements;
 import me.combimagnetron.sunscreen.neo.element.ModernElement;
 import me.combimagnetron.sunscreen.neo.element.impl.ButtonElement;
@@ -143,7 +143,7 @@ public class EditorStartOverviewMenuTemplate implements MenuTemplate {
         if (page == null) return canvas;
         Canvas pageCanvas = Canvas.empty(page.size());
         pageCanvas.fill(Vec2i.zero(), page.size(), Color.of(255, 255, 255));
-        RenderContext context = new RenderContext(null, null, List.of(EditorMenuTemplate.EDITOR_THEME));
+        RenderContext context = new RenderContext(null, null, List.of(EditorThemes.theme(project.themeId())));
         for (EditorProject.ElementData data : page.elements()) {
             ModernElement<?, Canvas> element = data.element();
             if (element == null) continue;
@@ -171,7 +171,9 @@ public class EditorStartOverviewMenuTemplate implements MenuTemplate {
                     Layout<?> layout = (Layout<?>) event.menu().element(Identifier.of("new_project/wizard"));
                     EditorNameElement nameElement = (EditorNameElement) layout.child(Identifier.of("new_project/wizard/name_element"));
                     if (!nameElement.validate()) return;
-                    controller.editor(nameElement.fakeIdentifier(), nameElement.displayName(), TestMenuTemplate.THEME);
+                    DropdownElement dropdown = (DropdownElement) layout.child(Identifier.of("new_project/wizard/theme_dropdown"));
+                    String label = dropdown.entries().get(dropdown.selected()).content();
+                    controller.editor(nameElement.fakeIdentifier(), nameElement.displayName(), EditorThemes.theme(EditorThemes.fromLabel(label)));
                 }).back().size(Size.fixed(Vec2i.of(96, 14))).position(Position.fixed(Vec2i.of(100, 254))).decorator(Decorator.decorator(Target.identifier(Identifier.of("sunscreen", "internal/editor/theme/decorator/button_confirm")))),
                 Elements.button(Identifier.of("new_project/wizard/cancel_button"), vanilla("Cancel").color(TextColor.color(Color.of(180, 180, 180))), Vec2i.of(31, 3)).listen().click(event -> {
                     if (!event.element().identifier().key().string().equals("new_project/wizard/cancel_button")) return;

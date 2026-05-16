@@ -6,6 +6,7 @@ import io.github.retrooper.packetevents.factory.spigot.SpigotPacketEventsBuilder
 import me.combimagnetron.passport.Passport;
 import me.combimagnetron.passport.util.data.Identifier;
 import me.combimagnetron.sunscreen.command.SunscreenCommand;
+import me.combimagnetron.sunscreen.neo.editor.project.EditorAssetWatcher;
 import me.combimagnetron.sunscreen.neo.graphic.text.style.impl.font.AtlasFont;
 import me.combimagnetron.sunscreen.neo.registry.Registries;
 import me.combimagnetron.sunscreen.placeholder.PapiPlaceholderProvider;
@@ -32,6 +33,7 @@ public class SunscreenPlugin extends JavaPlugin implements Listener {
     private Lamp<BukkitCommandActor> lamp;
     private SunscreenLibrary<SunscreenPlugin, Player, ItemStack> library;
     private UserManager userManager;
+    private EditorAssetWatcher assetWatcher;
 
 
     @Override
@@ -52,6 +54,7 @@ public class SunscreenPlugin extends JavaPlugin implements Listener {
         this.getDataFolder().mkdirs();
         this.userManager = new UserManager(this);
         folders();
+        assetWatcher();
         commands();
         //menus();
         platformSpecific();
@@ -65,6 +68,18 @@ public class SunscreenPlugin extends JavaPlugin implements Listener {
         Path path = getDataFolder().toPath();
         path.resolve(".projects").toFile().mkdirs();
         path.resolve(".cache").toFile().mkdirs();
+        path.resolve("assets").toFile().mkdirs();
+        path.resolve("themes").toFile().mkdirs();
+        path.resolve("Drop to Import").toFile().mkdirs();
+    }
+
+    private void assetWatcher() {
+        assetWatcher = new EditorAssetWatcher();
+        try {
+            assetWatcher.start();
+        } catch (IOException exception) {
+            getComponentLogger().warn("Failed to start Sunscreen asset import watcher", exception);
+        }
     }
 
     private void unzip() {
@@ -124,6 +139,7 @@ public class SunscreenPlugin extends JavaPlugin implements Listener {
 
     @Override
     public void onDisable() {
+        if (assetWatcher != null) assetWatcher.close();
         PacketEvents.getAPI().terminate();
     }
 

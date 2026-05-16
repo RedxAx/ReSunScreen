@@ -5,6 +5,7 @@ import me.combimagnetron.passport.util.math.Vec2i;
 import me.combimagnetron.sunscreen.neo.MenuRoot;
 import me.combimagnetron.sunscreen.neo.MenuTemplate;
 import me.combimagnetron.sunscreen.neo.editor.project.EditorProject;
+import me.combimagnetron.sunscreen.neo.editor.project.EditorThemes;
 import me.combimagnetron.sunscreen.neo.element.Elements;
 import me.combimagnetron.sunscreen.neo.element.ModernElement;
 import me.combimagnetron.sunscreen.neo.graphic.Canvas;
@@ -35,7 +36,7 @@ public class EditorProjectDisplayMenuTemplate implements MenuTemplate {
 
     @Override
     public void build(@NotNull MenuRoot root) {
-        root.theme(EditorMenuTemplate.EDITOR_THEME);
+        root.theme(EditorThemes.theme(project.themeId()));
         EditorProject.PageData page = pageKey.isBlank() ? project.selected() : project.page(pageKey);
         if (page == null) return;
         EditorProject.PageViewData view = page.view() == null ? EditorProject.PageViewData.center() : page.view();

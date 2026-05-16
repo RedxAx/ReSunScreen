@@ -35,7 +35,6 @@ tasks {
             //github("retrooper", "packetevents", "v2.11.1", "packetevents-spigot-2.11.1.jar")
             hangar("PlaceholderAPI", "2.11.6")
         }
-        serverJar(kotlin.io.path.Path("paper-1.21.11-127.jar").toFile())
     }
 
     build {

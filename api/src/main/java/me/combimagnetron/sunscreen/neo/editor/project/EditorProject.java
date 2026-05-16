@@ -30,6 +30,7 @@ public class EditorProject implements Serializable {
     private final String displayName;
     private final Identifier identifier;
     private final List<PageData> pages = new ArrayList<>();
+    private Identifier themeId = Identifier.of("sunscreen", "theme/modern");
     private Identifier selectedPage;
 
     public EditorProject(String displayName, Identifier identifier) {
@@ -43,6 +44,15 @@ public class EditorProject implements Serializable {
 
     public @NotNull Identifier identifier() {
         return identifier;
+    }
+
+    public @NotNull Identifier themeId() {
+        return themeId;
+    }
+
+    public @NotNull EditorProject themeId(@NotNull Identifier themeId) {
+        this.themeId = themeId;
+        return this;
     }
 
     public @NotNull List<PageData> pages() {

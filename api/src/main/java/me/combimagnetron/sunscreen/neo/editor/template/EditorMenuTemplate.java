@@ -243,6 +243,12 @@ public class EditorMenuTemplate implements MenuTemplate {
                 controller.deleteSelected();
             }).back()
         ).element(
+            Elements.button(Identifier.of("actions/theme"), vanilla("Theme"), Vec2i.of(6, 2)).size(Size.fixed(Vec2i.of(48, 11))).position(Position.fixed(Vec2i.of(272, 2))).listen().click(event -> {
+                if (!(event.element() instanceof ButtonElement)) return;
+                if (!event.element().identifier().key().string().equals("actions/theme")) return;
+                event.menu().show(new EditorThemeBuilderMenuTemplate(controller));
+            }).back()
+        ).element(
                 Layout.group(
                     Identifier.of("new_layer/wizard"),
                     EditorElements.frame(
